@@ -1,0 +1,44 @@
+;; What this vertical's robot physically does, declared for
+;; kotoba.robotics.process (kotoba-lang/robotics). `kbb -M:physics` runs it.
+;;
+;; README "Robotics premise": a workshop scheduling/logistics coordination
+;; robot handles crew scheduling, materials-usage records and instrument-
+;; materials supply orders for a musical-instrument-making/tuning crew
+;; (ISCO 7312). Its physical work: moving an upright piano on a dolly up the
+;; workshop's loading ramp, bringing a lacquered spruce top up to curing
+;; temperature in the warm cabinet, and the incoming check of piano wire.
+;;
+;; Every number without a cited source is marked `estimate` in its :basis.
+;; Replacing an estimate with a sourced value is this bot's growth work.
+{:physics/schema "itonami.physical-ai.spec.v1"
+ :repo "cloud-itonami/cloud-itonami-isco-7312"
+ :cases
+ [{:id :piano-up-loading-ramp
+   :kind :transport
+   :procedure "tug robot pushes an upright piano on a dolly up the workshop loading ramp"
+   :params {:mass-kg 120.0 :payload-kg 230.0 :distance-m 8.0 :v-max-mps 0.5 :a-max-mps2 0.2
+            :brake-decel-mps2 0.3 :drive-force-n 500.0 :crr 0.02
+            :cog-height-m 0.40 :support-half-length-m 0.45 :payload-cog-height-m 0.70
+            :max-time-s 600.0}
+   :sweep {:param :slope-deg :values [0.0 2.0 4.0 6.0 8.0]}
+   :quantity :cycle-time-s
+   :limit {:max 30.0 :basis "estimate: one ramp leg inside the loading-dock slot; the tug must also not stall on the grade"}
+   :boundary {:lo 0.0 :hi 15.0}}
+  {:id :lacquer-cure-warmup
+   :kind :thermal
+   :procedure "a freshly lacquered spruce top plate warms in the 40 C curing cabinet until its inner face reaches 35 C"
+   :params {:thickness-m 0.004 :conductivity-w-mk 0.12 :density-kg-m3 450.0 :specific-heat-j-kgk 1700.0
+            :t0-c 20.0 :t-hot-c 40.0 :h-front-w-m2k 15.0 :t-back-ambient-c 40.0 :h-back-w-m2k 15.0
+            :threshold-c 35.0 :duration-s 7200.0 :nodes 11}
+   :sweep {:param :thickness-m :values [0.003 0.004 0.008 0.015 0.025]}
+   :quantity :time-to-threshold-s
+   :limit {:max 1800.0 :basis "estimate: the lacquer maker's cure clock is assumed to start only once the wood is at temperature; 30 min warm-up budget per cabinet cycle"}}
+  {:id :piano-wire-check
+   :kind :material
+   :procedure "incoming check pulls a 1.0 mm steel piano wire sample past its stringing tension"
+   :params {:length-m 1.0 :area-m2 7.85e-7 :youngs-modulus-pa 205.0e9
+            :yield-stress-pa 2000.0e6 :hardening-pa 2.0e9 :density-kg-m3 7850.0}
+   :sweep {:param :max-force-n :values [400.0 800.0 1200.0 1600.0 2000.0]}
+   :quantity :final-strain
+   :limit {:max 0.009 :basis "estimate: stay elastic -- cold-drawn music wire of ~1 mm is assumed to yield near 2000 MPa, ~0.0098 strain at E = 205 GPa"}
+   :boundary {:lo 200.0 :hi 2500.0}}]}
